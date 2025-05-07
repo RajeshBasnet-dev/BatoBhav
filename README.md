@@ -36,7 +36,7 @@ Developer: Rajesh Basnet
 
 📧 basnetrajesh245@gmail.com
 
-🌐 LinkedIn
+🌐 LinkedIn https://www.linkedin.com/in/rajesh-basnet-360188340/
 
 ⭐ Star this repo to support the project and follow its future updates!
 
