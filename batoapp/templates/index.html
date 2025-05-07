@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BatoBhav - Nepal Real Estate Price Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Kalimati:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --accent-color: #ff6f61;
+            --text-color: #333;
+            --bg-light: #f8f9fa;
+            --bg-dark: #1a252f;
+            --text-dark: #e0e0e0;
+        }
+        [data-bs-theme="dark"] {
+            --primary-color: #66b0ff;
+            --accent-color: #ff8a80;
+            --text-color: #e0e0e0;
+            --bg-light: #2c3e50;
+            --bg-dark: #121212;
+            --text-dark: #ffffff;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-color);
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .hero {
+            background: url('https://images.unsplash.com/photo-1518609878373-06d740f60d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') no-repeat center center;
+            background-size: cover;
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        .hero h1 {
+            font-family: 'Kalimati', serif;
+            font-size: 3rem;
+            position: relative;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+        }
+        .hero p {
+            font-size: 1.5rem;
+            position: relative;
+            margin-top: 10px;
+        }
+        .navbar {
+            background-color: var(--bg-dark);
+            padding: 10px 0;
+        }
+        .navbar-brand {
+            font-family: 'Kalimati', serif;
+            font-size: 1.5rem;
+            color: var(--text-dark) !important;
+        }
+        .theme-toggle {
+            cursor: pointer;
+            color: var(--text-dark);
+        }
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+        [data-bs-theme="dark"] .form-container {
+            background: var(--bg-dark);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        .input-group .form-control {
+            border-radius: 8px 0 0 8px;
+        }
+        .input-group-text {
+            background-color: var(--bg-light);
+            border-radius: 0 8px 8px 0;
+            transition: background-color 0.3s;
+        }
+        [data-bs-theme="dark"] .input-group-text {
+            background-color: var(--bg-dark);
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 8px rgba(0,123,255,0.2);
+        }
+        .form-control.is-invalid {
+            border-color: #dc3545;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .prediction-card {
+            margin-top: 20px;
+            padding: 30px;
+            background-color: #d4edda;
+            border-radius: 15px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        [data-bs-theme="dark"] .prediction-card {
+            background-color: #2c3e50;
+        }
+        .prediction-card h3 {
+            color: #155724;
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        [data-bs-theme="dark"] .prediction-card h3 {
+            color: #66b0ff;
+        }
+        .prediction-card .price {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin: 10px 0;
+        }
+        .prediction-card .rental-info, .prediction-card .market-info {
+            font-size: 0.9rem;
+            color: #555;
+        }
+        [data-bs-theme="dark"] .prediction-card .rental-info, [data-bs-theme="dark"] .prediction-card .market-info {
+            color: #b0b0b0;
+        }
+        .loading-spinner {
+            display: none;
+            margin: 20px auto;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        #city-map {
+            height: 300px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .feedback-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+        [data-bs-theme="dark"] .feedback-box {
+            background: var(--bg-dark);
+        }
+        .why-batobhav, .recent-estimates, .contact-us {
+            margin: 40px 0;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
+        }
+        [data-bs-theme="dark"] .why-batobhav, [data-bs-theme="dark"] .recent-estimates, [data-bs-theme="dark"] .contact-us {
+            background: var(--bg-dark);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.1);
+        }
+        .why-batobhav h3, .recent-estimates h3, .contact-us h3 {
+            color: var(--primary-color);
+            font-family: 'Kalimati', serif;
+        }
+        .testimonial {
+            font-style: italic;
+            color: #666;
+            margin-top: 20px;
+        }
+        [data-bs-theme="dark"] .testimonial {
+            color: #b0b0b0;
+        }
+        .recent-estimates table {
+            background: transparent;
+        }
+        .recent-estimates th {
+            cursor: pointer;
+            user-select: none;
+        }
+        .recent-estimates th:hover {
+            background-color: #f1f1f1;
+        }
+        [data-bs-theme="dark"] .recent-estimates th:hover {
+            background-color: #3e4b5b;
+        }
+        .footer {
+            background-color: var(--bg-dark);
+            color: var(--text-dark);
+            padding: 20px 0;
+            text-align: center;
+            margin-top: 40px;
+        }
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @media (max-width: 576px) {
+            .hero h1 { font-size: 2rem; }
+            .hero p { font-size: 1.2rem; }
+            .form-container, .why-batobhav, .recent-estimates, .contact-us, .feedback-box { padding: 20px; }
+            #city-map { height: 200px; }
+            .prediction-card .price { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">BatoBhav</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#why-batobhav">Why BatoBhav?</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#recent-estimates">Recent Estimates</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact-us">Contact Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <span class="nav-link theme-toggle" id="theme-toggle"><i class="fas fa-moon"></i></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div class="hero">
+        <h1>Estimate Your Property Price in Seconds!</h1>
+        <p>Discover the value of your home with BatoBhav’s powerful predictions.</p>
+    </div>
+    <div class="container">
+        <div class="form-container">
+            <h2 class="text-center mb-4">Property Price Predictor</h2>
+            <form method="post" id="prediction-form">
+                {% csrf_token %}
+                <div class="mb-3 input-group">
+                    <span class="input-group-text"><i class="fas fa-ruler-combined"></i></span>
+                    <input type="number" class="form-control" id="{{ form.area.id_for_label }}" name="{{ form.area.name }}" placeholder="Area (sq. ft.)" value="{{ form.area.value|default_if_none:'' }}" data-bs-toggle="tooltip" title="Enter the property area in square feet" required>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="mb-3 input-group">
+                    <span class="input-group-text"><i class="fas fa-bed"></i></span>
+                    <input type="number" class="form-control" id="{{ form.bedrooms.id_for_label }}" name="{{ form.bedrooms.name }}" placeholder="Number of Bedrooms" value="{{ form.bedrooms.value|default_if_none:'' }}" data-bs-toggle="tooltip" title="Number of bedrooms in the property" required>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="mb-3 input-group">
+                    <span class="input-group-text"><i class="fas fa-bath"></i></span>
+                    <input type="number" class="form-control" id="{{ form.bathrooms.id_for_label }}" name="{{ form.bathrooms.name }}" placeholder="Number of Bathrooms" value="{{ form.bathrooms.value|default_if_none:'' }}" data-bs-toggle="tooltip" title="Number of bathrooms in the property" required>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="{{ form.city.id_for_label }}" class="form-label">Select City on Map</label>
+                    <input type="hidden" id="{{ form.city.id_for_label }}" name="{{ form.city.name }}" value="{{ form.city.value|default_if_none:'' }}">
+                    <div id="city-map"></div>
+                    <div id="city-info" class="mt-2 text-muted" style="display: none;"></div>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">Predict Price</button>
+                    <button type="button" class="btn btn-secondary" id="reset-form">Reset</button>
+                </div>
+            </form>
+            <div class="loading-spinner" id="loading-spinner"></div>
+            {% if prediction %}
+                <div class="prediction-card" id="prediction-result">
+                    <h3>Estimated Property Value</h3>
+                    <div class="price" data-price="{{ prediction|floatformat:2 }}"><i class="fas fa-rupee-sign"></i> <span>0</span></div>
+                    <p class="rental-info">Potential Monthly Rental: NPR {{ rental_estimate|floatformat:2 }}</p>
+                    <p class="market-info">Compared to {{ city|default:'city' }} average: {{ market_comparison }}</p>
+                </div>
+                <div class="feedback-box">
+                    <h5 class="text-center mb-3">Was this estimate helpful?</h5>
+                    <form id="feedback-form" method="post" action="{% url 'submit_feedback' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="prediction_id" value="{{ prediction_id }}">
+                        <div class="mb-3">
+                            <textarea class="form-control" name="feedback" placeholder="Share your thoughts or suggestions" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit Feedback</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+        <div class="why-batobhav" id="why-batobhav">
+            <h3 class="text-center mb-4">Why BatoBhav?</h3>
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-robot fa-2x mb-2" style="color: var(--primary-color);"></i>
+                    <h5>Accurate Predictions</h5>
+                    <p>Our advanced algorithms provide precise property valuations.</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-map-marked-alt fa-2x mb-2" style="color: var(--primary-color);"></i>
+                    <h5>Local Expertise</h5>
+                    <p>Tailored for Nepal’s unique real estate market.</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-shield-alt fa-2x mb-2" style="color: var(--primary-color);"></i>
+                    <h5>Trusted by Thousands</h5>
+                    <p>Join users across Nepal who rely on BatoBhav.</p>
+                </div>
+            </div>
+            <p class="testimonial text-center">"BatoBhav helped me estimate my home’s value accurately and quickly!" – Ramesh, Kathmandu</p>
+        </div>
+        {% if history %}
+            <div class="recent-estimates" id="recent-estimates">
+                <h3 class="text-center mb-4">Recent Estimates</h3>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col" data-sort="city">City</th>
+                            <th scope="col" data-sort="area">Area (sq.ft)</th>
+                            <th scope="col" data-sort="bedrooms">Bedrooms</th>
+                            <th scope="col" data-sort="bathrooms">Bathrooms</th>
+                            <th scope="col" data-sort="price">Price (NPR)</th>
+                            <th scope="col" data-sort="date">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pred in history %}
+                            <tr>
+                                <td>{{ pred.city }}</td>
+                                <td>{{ pred.area }}</td>
+                                <td>{{ pred.bedrooms }}</td>
+                                <td>{{ pred.bathrooms }}</td>
+                                <td>{{ pred.predicted_price|floatformat:2 }}</td>
+                                <td>{{ pred.created_at|date:"Y-m-d H:i" }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <div class="contact-us" id="contact-us">
+            <h3 class="text-center mb-4">Contact Us</h3>
+            <p class="text-center">Have questions? Reach out to us!</p>
+            <form id="contact-form">
+                <div class="mb-3">
+                    <input type="text" class="form-control" placeholder="Your Name" required>
+                </div>
+                <div class="mb-3">
+                    <input type="email" class="form-control" placeholder="Your Email" required>
+                </div>
+                <div class="mb-3">
+                    <textarea class="form-control" placeholder="Your Message" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Send Message</button>
+            </form>
+        </div>
+    </div>
+    <div class="footer">
+        <p>© 2025 BatoBhav. All rights reserved. <a href="#">Privacy Policy</a> | <a href="#contact-us">Contact Us</a></p>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Theme toggle
+            $('#theme-toggle').on('click', function() {
+                const currentTheme = $('html').attr('data-bs-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+                $('html').attr('data-bs-theme', newTheme);
+                $(this).html(newTheme === 'light' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>');
+            });
+
+            // Enable tooltips
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+            // Initialize Leaflet map
+            const map = L.map('city-map').setView([28.3949, 84.1240], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            const cityData = {
+                'Bhairahawa': { lat: 27.5, lon: 83.45, info: 'A vibrant city in Rupandehi district.' },
+                'Bhaktapur': { lat: 27.672, lon: 85.429, info: 'Known for its rich cultural heritage.' },
+                'Biratnagar': { lat: 26.452, lon: 87.271, info: 'A major industrial hub in Morang.' },
+                'Butwal': { lat: 27.7, lon: 83.45, info: 'A commercial center in Rupandehi.' },
+                'Chitwan': { lat: 27.529, lon: 84.354, info: 'Famous for its national park and biodiversity.' },
+                'Dhading': { lat: 27.866, lon: 84.933, info: 'A scenic district with rural charm.' },
+                'Dharan': { lat: 26.794, lon: 87.279, info: 'A cultural hub in Sunsari district.' },
+                'Illam': { lat: 26.911, lon: 87.923, info: 'Known for its tea gardens and hills.' },
+                'Jhapa': { lat: 26.583, lon: 87.885, info: 'A growing urban area in the east.' },
+                'Kapilvastu': { lat: 27.583, lon: 82.983, info: 'Historical significance and rural landscapes.' },
+                'Kaski': { lat: 28.266, lon: 83.983, info: 'Home to the scenic Pokhara valley.' },
+                'Kathmandu': { lat: 27.717, lon: 85.324, info: 'The capital city with bustling markets.' },
+                'Kavre': { lat: 27.616, lon: 85.616, info: 'Known for its agricultural landscapes.' },
+                'Kirtipur': { lat: 27.678, lon: 85.277, info: 'A historic town near Kathmandu.' },
+                'Lalitpur': { lat: 27.676, lon: 85.318, info: 'Famous for its art and architecture.' },
+                'Mahottari': { lat: 26.666, lon: 85.8, info: 'A Terai district with agricultural focus.' },
+                'Makwanpur': { lat: 27.416, lon: 85.033, info: 'Known for its industrial growth.' },
+                'Morang': { lat: 26.666, lon: 87.316, info: 'A key economic region in the east.' },
+                'Nawalparasi': { lat: 27.533, lon: 83.666, info: 'A diverse district in the Terai.' },
+                'Nawalpur': { lat: 27.683, lon: 84.116, info: 'An emerging area in central Nepal.' },
+                'Parsa': { lat: 27.166, lon: 84.866, info: 'A commercial hub near Birgunj.' },
+                'Pokhara': { lat: 28.209, lon: 83.985, info: 'A tourist paradise with lakes and mountains.' },
+                'Rupandehi': { lat: 27.626, lon: 83.378, info: 'A major commercial and cultural center.' },
+                'Surkhet': { lat: 28.6, lon: 81.6, info: 'A growing city in the mid-western region.' },
+                'Tanahu': { lat: 27.916, lon: 84.25, info: 'Known for its hydropower and natural beauty.' }
+            };
+
+            Object.keys(cityData).forEach(city => {
+                const { lat, lon, info } = cityData[city];
+                const marker = L.marker([lat, lon]).addTo(map);
+                marker.bindPopup(`<b>${city}</b><br>${info}`);
+                marker.on('click', function() {
+                    $('#id_city').val(city);
+                    $('#city-info').text(info).show();
+                    $('#id_city').removeClass('is-invalid');
+                    $('.invalid-feedback').text('');
+                });
+            });
+
+            // Real-time form validation
+            $('#prediction-form input').on('input', function() {
+                const $input = $(this);
+                const value = $input.val();
+                const $feedback = $input.next('.invalid-feedback');
+                
+                if ($input.attr('name') === 'area') {
+                    if (!value || value <= 0) {
+                        $input.addClass('is-invalid');
+                        $feedback.text('Please enter a positive area.');
+                    } else {
+                        $input.removeClass('is-invalid');
+                        $feedback.text('');
+                    }
+                } else if ($input.attr('name') === 'bedrooms' || $input.attr('name') === 'bathrooms') {
+                    if (!value || value < 0) {
+                        $input.addClass('is-invalid');
+                        $feedback.text('Please enter a non-negative number.');
+                    } else {
+                        $input.removeClass('is-invalid');
+                        $feedback.text('');
+                    }
+                }
+            });
+
+            // Form submission with loading spinner
+            $('#prediction-form').on('submit', function(e) {
+                let isValid = true;
+                $('#prediction-form input').each(function() {
+                    const $input = $(this);
+                    const value = $input.val();
+                    const $feedback = $input.next('.invalid-feedback') || $input.siblings('.invalid-feedback');
+                    if ($input.attr('name') === 'area' && (!value || value <= 0)) {
+                        $input.addClass('is-invalid');
+                        $feedback.text('Please enter a positive area.');
+                        isValid = false;
+                    } else if (($input.attr('name') === 'bedrooms' || $input.attr('name') === 'bathrooms') && (!value || value < 0)) {
+                        $input.addClass('is-invalid');
+                        $feedback.text('Please enter a non-negative number.');
+                        isValid = false;
+                    } else if ($input.attr('name') === 'city' && !value) {
+                        $input.addClass('is-invalid');
+                        $feedback.text('Please select a city on the map.');
+                        isValid = false;
+                    }
+                });
+                if (!isValid) {
+                    e.preventDefault();
+                } else {
+                    $('#loading-spinner').show();
+                    $('#prediction-result').hide();
+                }
+            });
+
+            // Animated price counter
+            if ($('#prediction-result').length) {
+                $('#loading-spinner').hide();
+                $('#prediction-result').show();
+                const priceElement = $('#prediction-result .price span');
+                const finalPrice = parseFloat($('#prediction-result .price').data('price'));
+                let currentPrice = 0;
+                const increment = finalPrice / 50;
+                const counter = setInterval(() => {
+                    currentPrice += increment;
+                    if (currentPrice >= finalPrice) {
+                        currentPrice = finalPrice;
+                        clearInterval(counter);
+                    }
+                    priceElement.text(currentPrice.toFixed(2));
+                }, 20);
+            }
+
+            // Reset form
+            $('#reset-form').on('click', function() {
+                $('#prediction-form')[0].reset();
+                $('#prediction-form input').removeClass('is-invalid');
+                $('.invalid-feedback').text('');
+                $('#city-info').hide();
+                $('#prediction-result').hide();
+                $('#id_city').val('');
+            });
+
+            // Table sorting
+            $('.recent-estimates th').on('click', function() {
+                const $table = $(this).closest('table');
+                const $tbody = $table.find('tbody');
+                const index = $(this).index();
+                const isNumeric = ['area', 'bedrooms', 'bathrooms', 'price'].includes($(this).data('sort'));
+                const rows = $tbody.find('tr').get();
+                
+                rows.sort((a, b) => {
+                    let aValue = $(a).children('td').eq(index).text();
+                    let bValue = $(b).children('td').eq(index).text();
+                    if (isNumeric) {
+                        aValue = parseFloat(aValue) || 0;
+                        bValue = parseFloat(bValue) || 0;
+                        return aValue - bValue;
+                    } else {
+                        return aValue.localeCompare(bValue);
+                    }
+                });
+
+                if ($(this).hasClass('asc')) {
+                    rows.reverse();
+                    $(this).removeClass('asc').addClass('desc');
+                } else {
+                    $(this).removeClass('desc').addClass('asc');
+                }
+                
+                $tbody.empty().append(rows);
+                $table.find('th').not(this).removeClass('asc desc');
+            });
+
+            // Contact form submission (placeholder)
+            $('#contact-form').on('submit', function(e) {
+                e.preventDefault();
+                alert('Thank you for your message! We will get back to you soon.');
+                this.reset();
+            });
+
+            // Feedback form submission
+            $('#feedback-form').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: $(this).attr('action'),
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        alert('Thank you for your feedback!');
+                        $('#feedback-form')[0].reset();
+                    },
+                    error: function() {
+                        alert('Error submitting feedback. Please try again.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
